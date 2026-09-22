@@ -1,5 +1,10 @@
-package eu.frezilla.pdfwatermark.watermark;
+package eu.frezilla.pdfwatermark.generator;
 
+import static eu.frezilla.pdfwatermark.generator.Utils.createSeed;
+import static eu.frezilla.pdfwatermark.generator.Utils.interpolate;
+import static eu.frezilla.pdfwatermark.generator.Utils.randomRange;
+import static eu.frezilla.pdfwatermark.generator.Utils.sanitizeForStandardFont;
+import static eu.frezilla.pdfwatermark.generator.Utils.validatePaths;
 import java.awt.Color;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -27,18 +32,18 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.blend.BlendMode;
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.util.Matrix;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public final class WatermarkGenerator {
-
-    private static class Holder {
-        private static final WatermarkGenerator INSTANCE = new WatermarkGenerator();
-    }
+public final class Generator {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(Generator.class);
 
     private final DateTimeFormatter date_format;
     private final PDFont main_font;
     private final PDFont micro_font;
 
-    private WatermarkGenerator() {
+    private Generator() {
         this.date_format = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.FRANCE);
         this.main_font = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
         this.micro_font = new PDType1Font(Standard14Fonts.FontName.COURIER);
@@ -46,6 +51,7 @@ public final class WatermarkGenerator {
     
     /**
      * Ajoute une empreinte dans les quatres coins de la page.
+     * 
      * @param cs  Flux PDF
      * @param page Page PDF
      * @param pageNumber Numéro de la page
@@ -73,7 +79,54 @@ public final class WatermarkGenerator {
         drawSimpleText(cs, text, right - width, bottom, fontSize);
         drawSimpleText(cs, text, left, top, fontSize);
         drawSimpleText(cs, text, right - width, top, fontSize);
+    }
+    
+    /**
+     * Ajoute un filigrane (et des méta-données si spécifié) au document
+     * 
+     * @param inputFile
+     * @param outputFile
+     * @param config
+     * @throws IOException 
+     */
+    public void addWatermark(Path inputFile, Path outputFile, Config config) throws IOException {
+        validatePaths(inputFile, outputFile);
+        Objects.requireNonNull(config, "config ne doit être null");
         
+        Path parent = outputFile.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        
+        try (RandomAccessReadBufferedFile source = new RandomAccessReadBufferedFile(inputFile)) {
+            PDDocument document = Loader.loadPDF(source);
+            
+            if (document.isEncrypted()) {
+                throw new IOException("Le pdf est chiffré. Le filigrane ne peut pas être ajouté");
+            }
+            
+            String fingerprint = createDocumentFingerprint(inputFile, config.documentId());
+            
+            int pageNumber = 0;
+            for (PDPage page : document.getPages()) {
+                pageNumber++;
+                
+                addWaterMarkToPage(
+                        document,
+                        page,
+                        pageNumber,
+                        fingerprint,
+                        config
+                );
+            }
+            
+            if (config.updateMetadata()) {
+                updateMetadatas(document, fingerprint, config);
+            }
+            
+            document.save(outputFile.toFile());
+        }
+
     }
     
     /**
@@ -212,6 +265,7 @@ public final class WatermarkGenerator {
     
     /**
      * Construit le texte principal du filigrane.
+     * 
      * @param config
      * @return 
      */
@@ -258,23 +312,6 @@ public final class WatermarkGenerator {
     }
     
     /**
-     * Créé la graine alétoire de la page du document.
-     * 
-     * @param fingerprint
-     * @param documentId
-     * @param pageNumber
-     * @return 
-     */
-    private long createSeed(String fingerprint, String documentId, int pageNumber) {
-        String value = fingerprint + "|" + documentId + "|" + pageNumber;
-        long result = 1125899906842597L;
-        for (int index = 0; index < value.length(); index++) {
-            result = 31L * result + value.charAt(index);
-        }
-        return result;
-    }
-    
-    /**
      * Dessine un texte avec rotation centré autour d'un point.
      * @param contentStream
      * @param font
@@ -311,7 +348,8 @@ public final class WatermarkGenerator {
     }
     
     /**
-     * Dessigne un texte simple aux coordonées indiquées.
+     * Dessine un texte simple aux coordonées indiquées.
+     * 
      * @param cs
      * @param text
      * @param x
@@ -332,113 +370,10 @@ public final class WatermarkGenerator {
      * 
      * @return 
      */
-    public static WatermarkGenerator getInstance() {
+    public static Generator getInstance() {
         return Holder.INSTANCE;
     }
 
-    public void addWatermark(Path inputFile, Path outputFile, Config config) throws IOException {
-        validatePaths(inputFile, outputFile);
-        Objects.requireNonNull(config, "config ne doit être null");
-        
-        Path parent = outputFile.toAbsolutePath().getParent();
-        if (parent != null) {
-            Files.createDirectories(parent);
-        }
-        
-        try (RandomAccessReadBufferedFile source = new RandomAccessReadBufferedFile(inputFile)) {
-            PDDocument document = Loader.loadPDF(source);
-            
-            if (document.isEncrypted()) {
-                throw new IOException("Le pdf est chiffré. Le filigrane ne peut pas être ajouté");
-            }
-            
-            String fingerprint = createDocumentFingerprint(inputFile, config.documentId());
-            
-            int pageNumber = 0;
-            for (PDPage page : document.getPages()) {
-                pageNumber++;
-                
-                addWaterMarkToPage(
-                        document,
-                        page,
-                        pageNumber,
-                        fingerprint,
-                        config
-                );
-            }
-            
-            if (config.updateMetadata()) {
-                updateMetadata(document, fingerprint, config);
-            }
-            
-            document.save(outputFile.toFile());
-        }
-
-    }
-    
-    /**
-     * Interpolation des valeurs.
-     * 
-     * @param min
-     * @param max
-     * @param factor
-     * @return 
-     */
-    private float interpolate(float  min, float  max, float factor) {
-        return min + (max - min) * factor;
-    }
-    
-    /**
-     * Retourne une valeur aléatoire comprise entre deux valeurs.
-     * 
-     * @param random
-     * @param minimum
-     * @param maximum
-     * @return 
-     */
-    private float randomRange(Random random, float minimum, float maximum) {
-        return minimum + random.nextFloat() * (maximum - minimum);
-    }
-    
-    /**
-     * Remaplce les caractères incompatibles avec les polices standards PDF.
-     * 
-     * @param value
-     * @return 
-     */
-    private String sanitizeForStandardFont(String value) {
-        if (value == null) {
-            return StringUtils.EMPTY;
-        }
-
-        return value
-                .replace('é', 'e')
-                .replace('è', 'e')
-                .replace('ê', 'e')
-                .replace('ë', 'e')
-                .replace('à', 'a')
-                .replace('â', 'a')
-                .replace('ä', 'a')
-                .replace('ù', 'u')
-                .replace('û', 'u')
-                .replace('ü', 'u')
-                .replace('ô', 'o')
-                .replace('ö', 'o')
-                .replace('î', 'i')
-                .replace('ï', 'i')
-                .replace('ç', 'c')
-                .replace('É', 'E')
-                .replace('È', 'E')
-                .replace('Ê', 'E')
-                .replace('À', 'A')
-                .replace('Ç', 'C')
-                .replace('œ', 'o')
-                .replace('Œ', 'O')
-                .replace('’', '\'')
-                .replace('–', '-')
-                .replace('—', '-');
-    }
-    
     /**
      * "Sélectionne" l'état graphisue en fonction de la ligne et de la colonne.
      * 
@@ -472,7 +407,9 @@ public final class WatermarkGenerator {
      * @param fingerprint Empreinte du document
      * @param cfg Configuration du traitement
      */
-    private void updateMetadata(PDDocument doc, String fingerprint, Config cfg) {
+    private void updateMetadatas(PDDocument doc, String fingerprint, Config cfg) {
+        LOGGER.trace("Mise à jour des métadonnées du document");
+        
         PDDocumentInformation information = doc.getDocumentInformation();
         information.setCustomMetadataValue("WatermarkLabel", cfg.label());
         information.setCustomMetadataValue("WatermarkRecipient", cfg.recipient());
@@ -481,28 +418,8 @@ public final class WatermarkGenerator {
         information.setCustomMetadataValue("WatermarkGenerationDate", cfg.generationDate().format(date_format));
     }
 
-    /**
-     * Valide les chemins des ressources.
-     * 
-     * @param inputFile
-     * @param outputFile
-     * @throws IOException 
-     */
-    private void validatePaths(Path inputFile, Path outputFile) throws IOException {
-        Objects.requireNonNull(inputFile, "inputFile ne doit pas être null");
-        Objects.requireNonNull(outputFile, "outputFile ne doit pas être null");
-        
-        if (!Files.exists(inputFile)) {
-            throw new IOException("Le fichier source n'existe pas");
-        }
-        
-        if (!Files.isRegularFile(inputFile)) {
-            throw new IOException("Le chemin source n'est pas un fichier");
-        }
-        
-        if (inputFile.toAbsolutePath().normalize().equals(outputFile.toAbsolutePath().normalize())) {
-            throw new IOException("Le fichier de sortie doit être différent du fichier source");
-        }
+    private static class Holder {
+        private static final Generator INSTANCE = new Generator();
     }
 
 }

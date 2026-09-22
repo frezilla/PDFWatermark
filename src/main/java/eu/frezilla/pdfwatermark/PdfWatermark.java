@@ -1,7 +1,7 @@
 package eu.frezilla.pdfwatermark;
 
-import eu.frezilla.pdfwatermark.watermark.Config;
-import eu.frezilla.pdfwatermark.watermark.WatermarkGenerator;
+import eu.frezilla.pdfwatermark.generator.Config;
+import eu.frezilla.pdfwatermark.generator.Generator;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -52,12 +52,12 @@ public class PdfWatermark {
             Config config = Config.createDefaultConfig(label, recipient, documentId);
             
             try {
-                WatermarkGenerator.getInstance().addWatermark(
-                    Path.of("input.pdf"), 
-                    Path.of("output.pdf"), 
+                Generator.getInstance().addWatermark(
+                    Path.of(inputFile), 
+                    Path.of(ouputFile), 
                     config
                 ); 
-            } catch (IOException e) {
+            } catch (IOException | NullPointerException e) {
                 LOGGER.error("Une erreur bloquante a été détectée au cours du traitement", e);
                 ps.println("Une erreur bloquate a été détectée au cours du traitement; consultez les logs pour obtenir plus d'informations.");
                 System.exit(-1);

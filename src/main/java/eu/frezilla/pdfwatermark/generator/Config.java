@@ -1,4 +1,4 @@
-package eu.frezilla.pdfwatermark.watermark;
+package eu.frezilla.pdfwatermark.generator;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
