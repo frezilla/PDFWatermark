@@ -1,10 +1,10 @@
-package eu.frezilla.pdfwatermark;
+package eu.frezilla.pdfwatermark.watermark;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 
-public record WatermarkConfig(
+public record Config(
         String label,
         String recipient,
         String documentId,
@@ -19,7 +19,7 @@ public record WatermarkConfig(
         boolean addMicroText,
         boolean updateMetadata) {
 
-    public WatermarkConfig {
+    public Config {
         Objects.requireNonNull(label, "label ne doit pas être null");
         Objects.requireNonNull(recipient, "recipient ne doit pas être null");
         Objects.requireNonNull(documentId, "documentId ne doit pas être null");
@@ -54,12 +54,12 @@ public record WatermarkConfig(
         }
     }
     
-    public static WatermarkConfig createDefaultConfig(
+    public static Config createDefaultConfig(
                 String label,
                 String recipient,
                 String documentId
         ) {
-            return new WatermarkConfig(
+            return new Config(
                     label,
                     recipient,
                     documentId,

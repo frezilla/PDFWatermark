@@ -1,4 +1,4 @@
-package eu.frezilla.pdfwatermark;
+package eu.frezilla.pdfwatermark.watermark;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -28,17 +28,17 @@ import org.apache.pdfbox.pdmodel.graphics.blend.BlendMode;
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.util.Matrix;
 
-public final class PdfWatermarkGenerator {
+public final class WatermarkGenerator {
 
     private static class Holder {
-        private static final PdfWatermarkGenerator INSTANCE = new PdfWatermarkGenerator();
+        private static final WatermarkGenerator INSTANCE = new WatermarkGenerator();
     }
 
     private final DateTimeFormatter date_format;
     private final PDFont main_font;
     private final PDFont micro_font;
 
-    private PdfWatermarkGenerator() {
+    private WatermarkGenerator() {
         this.date_format = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.FRANCE);
         this.main_font = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
         this.micro_font = new PDType1Font(Standard14Fonts.FontName.COURIER);
@@ -85,7 +85,7 @@ public final class PdfWatermarkGenerator {
      * @param fingerprint
      * @param cfg 
      */
-    private void addWaterMarkToPage(PDDocument document, PDPage page, int pageNumber, String fingerprint, WatermarkConfig cfg) throws IOException {
+    private void addWaterMarkToPage(PDDocument document, PDPage page, int pageNumber, String fingerprint, Config cfg) throws IOException {
         PDRectangle mediaBox = page.getMediaBox();
 
         // La graine dépend du document et du numéro de page
@@ -206,7 +206,7 @@ public final class PdfWatermarkGenerator {
      * @param pageNumber
      * @return 
      */
-    private String buildMicroText(WatermarkConfig config, String fingerprint, int pageNumber) {
+    private String buildMicroText(Config config, String fingerprint, int pageNumber) {
         return config.documentId() + " -" + fingerprint + " - p" + pageNumber + " - " + config.generationDate().format(date_format);
     }
     
@@ -215,7 +215,7 @@ public final class PdfWatermarkGenerator {
      * @param config
      * @return 
      */
-    private String buildVisibleText(WatermarkConfig config) {
+    private String buildVisibleText(Config config) {
         return config.label() + " | " + config.recipient() + " | " + config.documentId();
     }    
 
@@ -332,11 +332,11 @@ public final class PdfWatermarkGenerator {
      * 
      * @return 
      */
-    public static PdfWatermarkGenerator getInstance() {
+    public static WatermarkGenerator getInstance() {
         return Holder.INSTANCE;
     }
 
-    public void addWatermark(Path inputFile, Path outputFile, WatermarkConfig config) throws IOException {
+    public void addWatermark(Path inputFile, Path outputFile, Config config) throws IOException {
         validatePaths(inputFile, outputFile);
         Objects.requireNonNull(config, "config ne doit être null");
         
@@ -472,7 +472,7 @@ public final class PdfWatermarkGenerator {
      * @param fingerprint Empreinte du document
      * @param cfg Configuration du traitement
      */
-    private void updateMetadata(PDDocument doc, String fingerprint, WatermarkConfig cfg) {
+    private void updateMetadata(PDDocument doc, String fingerprint, Config cfg) {
         PDDocumentInformation information = doc.getDocumentInformation();
         information.setCustomMetadataValue("WatermarkLabel", cfg.label());
         information.setCustomMetadataValue("WatermarkRecipient", cfg.recipient());
