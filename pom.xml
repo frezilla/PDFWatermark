@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>eu.frezilla</groupId>
+    <artifactId>pdfwatermark</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>PdfWatermark</name>
+    <description>Ajout d'un filigrane sur les pages d'un document PDF</description>
+    <developers>
+        <developer>
+            <name>Frezilla</name>
+        </developer>
+    </developers>
+    <packaging>jar</packaging>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>25</maven.compiler.release>
+        <exec.mainClass>eu.frezilla.pdfwatermark.PdfWatermark</exec.mainClass>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.20.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.8</version>
+        </dependency>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.7.7</version>
+        </dependency>
+    </dependencies>
+</project>
