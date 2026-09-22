@@ -4,7 +4,7 @@ import picocli.CommandLine.Option;
 
 public class Arguments {
 
-    @Option(names = {"--documentId"}, description = "identifiant du document", required = true)
+    @Option(names = {"--documentId"}, description = "identifiant du document", paramLabel = "DOCUMENTID", required = true)
     private String documentId;
 
     @Option(names = {"-?", "--help"}, description = "affiche l'aide", usageHelp = true)
@@ -13,13 +13,13 @@ public class Arguments {
     @Option(names = {"--input"}, description = "fichier pdf existant", paramLabel = "INPUTFILE", required = true)
     private String inputFile;
 
-    @Option(names = {"--label"}, description = "texte principal du filigrane", required = true)
+    @Option(names = {"--label"}, description = "texte principal du filigrane", paramLabel = "LABEL", required = true)
     private String label;
 
     @Option(names = {"--output"}, description = "fichier pdf à créer", paramLabel = "OUTPUTFILE", required = true)
     private String outputFile;
 
-    @Option(names = {"--recipient"}, description = "destinataire du document", required = true)
+    @Option(names = {"--recipient"}, description = "destinataire du document", paramLabel = "RECIPIENT", required = true)
     private String recipient;
 
     public String getDocumentId() {

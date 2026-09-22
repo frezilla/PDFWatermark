@@ -26,6 +26,8 @@ import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
@@ -123,6 +125,8 @@ public final class Generator {
             if (config.updateMetadata()) {
                 updateMetadatas(document, fingerprint, config);
             }
+            
+            applyRestrictions(document, config.password());
             
             document.save(outputFile.toFile());
         }
@@ -250,6 +254,32 @@ public final class Generator {
 
             contentStream.restoreGraphicsState();
         }
+    }
+    
+    /**
+     * Application des restrictions au document.
+     * Le mot de passe utilisateur reste vide pour simplifier l'ouverture du 
+     * pdf.
+     * 
+     * @param document 
+     * @param ownerPassword
+     * @Throws IOException
+     */
+    private void applyRestrictions(PDDocument document, String ownerPassword) throws IOException {
+        AccessPermission permissions = new AccessPermission();
+        permissions.setCanAssembleDocument(false);
+        permissions.setCanFillInForm(false);
+        permissions.setCanExtractContent(false);
+        permissions.setCanModify(false);
+        permissions.setCanModifyAnnotations(false);
+        permissions.setCanPrint(false);
+        permissions.setCanPrintFaithful(false);        
+
+        StandardProtectionPolicy policy = new StandardProtectionPolicy(ownerPassword, StringUtils.EMPTY, permissions);
+        policy.setEncryptionKeyLength(256);
+        policy.setPermissions(permissions);
+
+        document.protect(policy);
     }
     
     /**

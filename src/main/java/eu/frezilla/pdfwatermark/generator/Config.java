@@ -3,6 +3,7 @@ package eu.frezilla.pdfwatermark.generator;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 
 public record Config(
         String label,
@@ -17,7 +18,8 @@ public record Config(
         float maximumOpacity,
         float positionJitter,
         boolean addMicroText,
-        boolean updateMetadata) {
+        boolean updateMetadata,
+        String password) {
 
     public Config {
         Objects.requireNonNull(label, "label ne doit pas être null");
@@ -52,6 +54,8 @@ public record Config(
         if (positionJitter < 0) {
             throw new IllegalArgumentException("positionJitter ne peut pas être négatif");
         }
+        
+        
     }
     
     public static Config createDefaultConfig(
@@ -72,7 +76,8 @@ public record Config(
                     0.16f,
                     16.0f,
                     true,
-                    true
+                    true,
+                    "íÒ2Yëº:¶_ìÅï\"]pC3ôL¾%®?("
             );
         }
 
